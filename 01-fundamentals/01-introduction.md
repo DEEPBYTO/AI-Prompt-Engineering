@@ -409,6 +409,6 @@ The goal is to create **clear, purposeful, testable instructions that help AI sy
 
 Continue with:
 
-**[Anatomy of a Prompt](./anatomy-of-a-prompt.md)**
+**[Anatomy of a Prompt](./02-anatomy-of-a-prompt.md)**
 
 Learn how the individual components of a prompt work together.
