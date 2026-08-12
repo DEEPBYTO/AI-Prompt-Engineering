@@ -2,410 +2,511 @@
 
 Debugging prompts are designed to help AI systems identify, explain, and fix problems in software.
 
-A strong debugging prompt does not simply say **“fix this code.”** It provides enough information for the AI to understand the expected behavior, actual behavior, environment, error, and relevant code.
+A good debugging prompt does more than say **"fix my code."** It provides the AI with the code, expected behavior, actual behavior, error messages, environment, and relevant constraints.
 
 ---
 
 ## What Is a Debugging Prompt?
 
-A basic debugging prompt:
+A weak debugging prompt:
 
 ```text
-Fix this code.
+Fix this code. It doesn't work.
 ```
 
-provides almost no useful context.
-
-A stronger prompt:
+A stronger debugging prompt:
 
 ```text
 LANGUAGE:
 Python 3.12
 
+TASK:
+Find and fix the bug in the following function.
+
 EXPECTED BEHAVIOR:
-The function should calculate the average of a list.
+The function should return the total price.
 
 ACTUAL BEHAVIOR:
-The program crashes when the list is empty.
+It returns an incorrect value when quantity is greater than 1.
 
 ERROR:
-ZeroDivisionError
+No exception is raised.
 
 CODE:
 [CODE]
 
-TASK:
-Identify the root cause and provide a safe fix.
+REQUIREMENTS:
+- Identify the root cause.
+- Explain the bug.
+- Provide the corrected code.
+- Provide test cases.
 ```
 
-The second prompt gives the AI a much better debugging target.
+The second prompt gives the AI enough information to investigate the problem systematically.
 
 ---
 
 # The Debugging Information Model
 
-A useful debugging prompt can contain:
+A useful debugging prompt usually contains:
 
 ```text
-ENVIRONMENT
+Environment
      ↓
-EXPECTED BEHAVIOR
+Expected Behavior
      ↓
-ACTUAL BEHAVIOR
+Actual Behavior
      ↓
-ERROR
+Error / Evidence
      ↓
-CODE
+Code
      ↓
-REPRODUCTION STEPS
+Constraints
      ↓
-TASK
-     ↓
-CONSTRAINTS
+Debugging Task
 ```
 
-Not every debugging problem requires every section.
+Each piece helps narrow down the problem.
 
 ---
 
-# 1. Environment
+# 1. Define the Environment
 
 Software behavior can depend on the environment.
 
-Include relevant information such as:
+Include information such as:
 
 ```text
 LANGUAGE:
 Python 3.12
 
 FRAMEWORK:
-FastAPI
-
-OS:
-Windows 11
+FastAPI 0.116
 
 DATABASE:
-PostgreSQL 16
+PostgreSQL 17
+
+OS:
+Windows
 ```
 
-For frontend problems:
+You do not need to include irrelevant environment details.
 
-```text
-FRAMEWORK:
-React
-
-LANGUAGE:
-TypeScript
-
-BROWSER:
-Chrome
-```
-
-Only include information that can affect the problem.
+Only provide information that can affect the problem.
 
 ---
 
-# 2. Expected Behavior
+# 2. Define Expected Behavior
 
-Explain what should happen.
+Tell the AI what should happen.
 
 ```text
 EXPECTED:
-When a user submits the form with valid
-information, the account should be created.
+When the user submits a valid email,
+the function should return True.
 ```
 
-This gives the AI a target to compare against.
+Without expected behavior, the AI may not know what "correct" means.
 
 ---
 
-# 3. Actual Behavior
+# 3. Define Actual Behavior
 
-Explain what is happening instead.
+Explain what actually happens.
 
 ```text
 ACTUAL:
-The form submits successfully, but the user
-is not added to the database.
+The function returns False even when
+the email is valid.
 ```
 
 The difference between expected and actual behavior is often the key to debugging.
 
 ---
 
-# 4. Error Message
+# Expected vs. Actual
 
-If an error exists, include the exact message.
+A useful format is:
+
+```text
+EXPECTED:
+User submits valid credentials → Login succeeds.
+
+ACTUAL:
+User submits valid credentials → Login fails.
+```
+
+This gives the AI a concrete failure condition.
+
+---
+
+# 4. Include the Exact Error
+
+If an error exists, provide the exact message.
 
 ```text
 ERROR:
-TypeError: Cannot read properties of undefined
+TypeError: unsupported operand type(s) for +:
+'int' and 'str'
 ```
 
-Avoid paraphrasing errors when the original message is available.
+Avoid vague descriptions such as:
+
+```text
+It gives some type error.
+```
+
+Exact errors provide better evidence.
 
 ---
 
-# 5. Stack Trace
+# 5. Include the Stack Trace
 
-For runtime errors, include the relevant traceback.
+For complicated problems:
 
 ```text
 TRACEBACK:
-[PASTE TRACEBACK HERE]
+[Paste the relevant traceback here]
 ```
 
-A stack trace can identify:
+A stack trace can reveal:
 
-* Error type
-* File
-* Line number
-* Call sequence
-* Failure location
+* Where the error occurred
+* Which function called it
+* Which line failed
+* What type of exception occurred
 
 ---
 
-# 6. Relevant Code
+# 6. Include Relevant Code
 
-Include the smallest useful section of code.
+Provide the smallest amount of code that still reproduces the problem.
 
 ````text
 CODE:
 ```python
-def calculate_average(values):
-    return sum(values) / len(values)
+def calculate_total(price, quantity):
+    return price + quantity
 ````
 
 ````
 
-If the problem depends on another function, include that too.
-
-Avoid dumping an entire large repository unless necessary.
+If the issue depends on other functions, include those dependencies too.
 
 ---
 
-# 7. Reproduction Steps
+# Minimal Reproducible Example
 
-Explain how to reproduce the problem.
+A minimal reproducible example, often called an **MRE**, is a small version of the problem that still demonstrates the bug.
+
+Instead of providing:
 
 ```text
-REPRODUCTION:
+5000 lines of application code
+````
+
+provide:
+
+```text
+The smallest relevant section that reproduces the issue.
+```
+
+This can make debugging faster and more focused.
+
+---
+
+# 7. Explain How to Reproduce the Bug
+
+Tell the AI how the problem occurs.
+
+```text
+STEPS TO REPRODUCE:
 
 1. Start the application.
-2. Open the login page.
-3. Enter an invalid email.
-4. Click "Login".
-5. The application crashes.
-````
+2. Open /login.
+3. Enter a valid email.
+4. Enter a valid password.
+5. Click Login.
+6. The page returns HTTP 500.
+```
 
-Reproduction steps are especially useful for application bugs.
+This is especially useful for application bugs.
 
 ---
 
-# 8. Task
+# 8. Include Recent Changes
 
-Tell the AI what you want it to do.
+Sometimes the problem appeared after a recent change.
+
+```text
+RECENT CHANGE:
+I upgraded the database library from version X
+to version Y.
+```
+
+Or:
+
+```text
+The bug appeared immediately after changing
+the authentication middleware.
+```
+
+This can provide an important debugging clue.
+
+---
+
+# Root-Cause Analysis
+
+Do not only ask the AI to provide a patch.
+
+Ask it to identify the root cause.
 
 ```text
 TASK:
-Identify the root cause, explain the problem,
-and provide a minimal fix.
+Find the root cause of the problem.
+
+OUTPUT:
+1. Root cause
+2. Evidence
+3. Fix
+4. Prevention
 ```
 
----
-
-# 9. Constraints
-
-Define what should not change.
-
-```text
-CONSTRAINTS:
-- Do not change the database schema.
-- Do not add external dependencies.
-- Preserve the existing API response format.
-- Make the smallest practical change.
-```
-
-This prevents unnecessary modifications.
-
----
-
-# Root Cause Analysis
-
-A good debugging prompt should encourage the AI to identify the **root cause**, not only the visible symptom.
-
-For example:
-
-```text
-TASK:
-Do not only suggest a workaround.
-
-Identify:
-1. The root cause
-2. Why it occurs
-3. Why the current implementation fails
-4. The smallest reliable fix
-```
-
-This produces a more useful debugging process.
-
----
-
-# Symptom vs. Root Cause
-
-Consider:
-
-```text
-Symptom:
-The login button does nothing.
-```
-
-Possible causes:
-
-* JavaScript event handler failure
-* Validation preventing submission
-* API request failing
-* Authentication endpoint returning an error
-* Network configuration problem
-* Frontend state issue
-
-The visible symptom is not necessarily the actual problem.
+The goal is to understand **why** the problem occurred, not just make the error disappear.
 
 ---
 
 # Debugging Workflow
 
-A useful debugging workflow is:
+A structured debugging workflow can be:
 
 ```text
-Problem
+Observe
    ↓
 Reproduce
    ↓
 Collect Evidence
    ↓
-Identify Possible Causes
-   ↓
-Test Hypotheses
-   ↓
 Identify Root Cause
+   ↓
+Design Fix
    ↓
 Implement Fix
    ↓
-Test Fix
+Test
+   ↓
+Verify
 ```
 
-Prompting can guide the AI through this process.
+This is a useful mental model for AI-assisted debugging.
 
 ---
 
-# Root-Cause Debugging Prompt
-
-```text
-ROLE:
-Act as a senior software debugging engineer.
-
-TASK:
-Investigate the following issue.
-
-EXPECTED:
-[Expected behavior]
-
-ACTUAL:
-[Actual behavior]
-
-ERROR:
-[Exact error]
-
-ENVIRONMENT:
-[Environment]
-
-CODE:
-[Relevant code]
-
-REQUIREMENTS:
-1. Identify the root cause.
-2. Explain why it occurs.
-3. Explain why the current implementation fails.
-4. Provide the smallest reliable fix.
-5. Provide a test that confirms the fix.
-
-Do not rewrite unrelated parts of the code.
-```
-
----
-
-# Minimal Reproduction
-
-A minimal reproduction contains only the code and conditions necessary to reproduce the problem.
-
-For example:
+# Debugging Prompt Example
 
 ````text
+ROLE:
+Act as a senior Python developer.
+
+LANGUAGE:
+Python 3.12
+
 TASK:
-Debug this minimal reproduction.
+Debug the following function.
+
+EXPECTED:
+The function should return the average
+of all numbers in the list.
+
+ACTUAL:
+It crashes when the list is empty.
+
+ERROR:
+ZeroDivisionError
 
 CODE:
 ```python
-items = [1, 2, 3]
-
-for i in range(len(items) + 1):
-    print(items[i])
+def average(numbers):
+    return sum(numbers) / len(numbers)
 ````
 
-ERROR:
-IndexError
+REQUIREMENTS:
 
-EXPECTED:
-Print every item exactly once.
+1. Identify the root cause.
+2. Explain why the error occurs.
+3. Provide a corrected implementation.
+4. Add tests for normal and empty input.
 
 ````
 
-A small reproducible example can make debugging much easier.
+This gives the AI a clear debugging workflow.
 
 ---
 
-# Debugging With Logs
+# Debugging Without an Error Message
 
-Logs can provide important evidence.
+Not every bug produces an exception.
+
+For example:
 
 ```text
-LOGS:
-2026-08-12 18:02:41 INFO Starting server
-2026-08-12 18:02:45 INFO Login request received
-2026-08-12 18:02:45 ERROR Database connection failed
+EXPECTED:
+The total should be 150.
+
+ACTUAL:
+The application displays 100.
+
+ERROR:
+None.
 ````
 
-Prompt:
+This is a **logic bug**, not necessarily a runtime error.
+
+In these cases, expected and actual behavior become especially important.
+
+---
+
+# Logic Bug Prompt
 
 ```text
 TASK:
-Analyze these logs.
+Find the logic error.
 
-Identify:
-- First meaningful failure
-- Possible root cause
-- Secondary errors
-- Recommended investigation steps
+EXPECTED:
+10% discount should be applied to the total.
+
+ACTUAL:
+The discount appears to be calculated
+using the original price instead of the subtotal.
+
+CODE:
+[CODE]
+
+OUTPUT:
+Explain the incorrect calculation and
+provide the corrected implementation.
 ```
-
-The first visible error is not always the root cause, so chronological analysis matters.
 
 ---
 
-# Debugging API Problems
+# Runtime Error Prompts
 
-A useful API debugging prompt:
+For runtime errors, include:
 
 ```text
-STACK:
-FastAPI + PostgreSQL
+ERROR:
+[Exact error]
 
-EXPECTED:
-POST /api/users should create a new user.
+TRACEBACK:
+[Traceback]
 
-ACTUAL:
-The endpoint returns HTTP 500.
+REPRODUCTION:
+[Steps]
+
+CODE:
+[Relevant code]
+```
+
+Then ask:
+
+```text
+TASK:
+Identify the root cause and provide a minimal fix.
+```
+
+---
+
+# Compile-Time / Syntax Errors
+
+For syntax or compilation errors:
+
+```text
+LANGUAGE:
+Java
+
+ERROR:
+[Compiler output]
+
+CODE:
+[Code]
+
+TASK:
+Identify the syntax or compilation problem
+and provide the corrected version.
+```
+
+The exact compiler output is valuable evidence.
+
+---
+
+# Dependency Problems
+
+Sometimes the problem is caused by a package or dependency.
+
+Include:
+
+```text
+DEPENDENCIES:
+fastapi==0.116.1
+pydantic==2.x
+```
+
+And:
+
+```text
+RECENT CHANGE:
+The application worked before upgrading FastAPI.
+```
+
+Then ask the AI to investigate the compatibility issue.
+
+Do not assume the dependency is the cause without evidence.
+
+---
+
+# Database Debugging
+
+For database problems, include:
+
+* Database system
+* Schema
+* Query
+* Error
+* Expected result
+* Actual result
+
+Example:
+
+```text
+DATABASE:
+PostgreSQL
+
+TABLE:
+orders(id, customer_id, total, created_at)
+
+QUERY:
+SELECT customer_id, SUM(total)
+FROM orders;
+
+ERROR:
+column "customer_id" must appear in the GROUP BY clause
+
+TASK:
+Explain the error and provide the corrected query.
+```
+
+---
+
+# API Debugging
+
+For API problems, include the request and response.
+
+```text
+METHOD:
+POST
+
+ENDPOINT:
+/api/users
 
 REQUEST:
 {
@@ -413,335 +514,276 @@ REQUEST:
   "email": "test@example.com"
 }
 
-RESPONSE:
-{
-  "detail": "Internal Server Error"
-}
-
-SERVER LOG:
-[LOGS]
-
-CODE:
-[ENDPOINT CODE]
-
-TASK:
-Identify the likely root cause and propose a fix.
-```
-
----
-
-# HTTP Debugging
-
-For web APIs, include:
-
-* HTTP method
-* URL path
-* Request headers when relevant
-* Request body
-* Status code
-* Response body
-* Server logs
-* Expected response
-
-Example:
-
-```text
-METHOD:
-POST
-
-ENDPOINT:
-/api/login
-
-STATUS:
-401
-
 EXPECTED:
-200
+HTTP 201 with created user.
 
-REQUEST:
-[REQUEST]
+ACTUAL:
+HTTP 422.
 
 RESPONSE:
-[RESPONSE]
-```
-
----
-
-# Database Debugging
-
-Database problems should include the relevant schema and query.
-
-```text
-DATABASE:
-PostgreSQL
-
-TABLE:
-users
-
-QUERY:
-SELECT * FROM users WHERE email = ?
-
-ERROR:
-column "email" does not exist
-
-SCHEMA:
-[SCHEMA]
+[API response]
 
 TASK:
-Identify why the query fails and provide the corrected query.
+Identify the likely cause and explain how to debug it.
 ```
 
 ---
 
 # Frontend Debugging
 
-For frontend issues, include:
+Frontend bugs often need:
 
 ```text
 FRAMEWORK:
-React + TypeScript
+React
+
+BROWSER:
+Chrome
 
 EXPECTED:
-Clicking the button should submit the form.
+The button should submit the form.
 
 ACTUAL:
-Nothing happens.
+Clicking the button does nothing.
 
 CONSOLE ERROR:
-[ERROR]
-
-COMPONENT:
-[CODE]
-
-TASK:
-Identify the cause and provide the minimal fix.
-```
-
-Browser console errors can be particularly valuable.
-
----
-
-# Authentication Debugging
-
-Authentication issues should be described carefully.
-
-```text
-SYSTEM:
-React frontend + FastAPI backend
-
-EXPECTED:
-A successful login should store the authentication
-token and redirect the user to the dashboard.
-
-ACTUAL:
-Login succeeds, but the user is immediately redirected
-back to the login page.
-
-EVIDENCE:
-[Console logs]
-[Network response]
-[Relevant code]
-
-TASK:
-Trace the authentication flow and identify where
-the state is being lost.
-```
-
-This focuses the investigation on the complete flow rather than one line of code.
-
----
-
-# Performance Debugging
-
-Performance problems require measurements where possible.
-
-Weak:
-
-```text
-The application is slow.
-```
-
-Better:
-
-```text
-PROBLEM:
-The dashboard takes approximately 4 seconds to load.
-
-EXPECTED:
-The dashboard should load in under 1 second.
-
-OBSERVED:
-- API request: 3.2 seconds
-- Database query: 2.8 seconds
-- Frontend rendering: 0.2 seconds
-
-TASK:
-Analyze the measurements and identify the most likely
-performance bottleneck.
-```
-
-Measurements are more useful than vague descriptions.
-
----
-
-# Memory and Resource Problems
-
-For memory leaks or resource exhaustion, include:
-
-```text
-ENVIRONMENT:
-[Environment]
-
-OBSERVATION:
-Memory usage increases continuously during operation.
-
-STARTING MEMORY:
-300 MB
-
-AFTER 30 MINUTES:
-1.2 GB
-
-STEPS:
-[Reproduction steps]
+[Error]
 
 CODE:
-[Relevant code]
+[Component]
 
 TASK:
-Identify possible resource leaks and suggest
-a method to verify each hypothesis.
+Identify the likely cause and provide a fix.
 ```
+
+Screenshots can also be useful when the problem is visual.
 
 ---
 
-# Debugging With Hypotheses
+# Debugging Prompts With Constraints
 
-Instead of asking the AI to immediately choose one explanation:
-
-```text
-TASK:
-Generate the three most likely causes.
-
-For each cause provide:
-- Evidence supporting it
-- Evidence against it
-- How to test it
-```
-
-This encourages systematic investigation.
-
----
-
-# Evidence-Based Debugging
-
-A useful debugging prompt can explicitly require evidence.
+Sometimes you want to prevent unnecessary changes.
 
 ```text
-TASK:
-Analyze the issue using only the information provided.
-
-For each proposed cause:
-1. Identify supporting evidence.
-2. Identify missing evidence.
-3. Explain how to verify it.
-
-Clearly distinguish:
-- Confirmed facts
-- Strong possibilities
-- Speculation
-```
-
-This helps prevent unsupported conclusions.
-
----
-
-# Debugging With Multiple Stages
-
-Complex debugging can use a prompt chain.
-
-```text
-Stage 1:
-Collect facts
-      ↓
-Stage 2:
-Generate hypotheses
-      ↓
-Stage 3:
-Rank hypotheses
-      ↓
-Stage 4:
-Design tests
-      ↓
-Stage 5:
-Identify root cause
-      ↓
-Stage 6:
-Implement fix
-      ↓
-Stage 7:
-Verify fix
-```
-
-This combines debugging with prompt chaining.
-
----
-
-# Fix-Only vs. Explain-and-Fix
-
-Sometimes you only need a patch:
-
-```text
-TASK:
-Fix the bug and return the corrected code.
-```
-
-Other times, explanation is important:
-
-```text
-TASK:
-1. Identify the bug.
-2. Explain the root cause.
-3. Show the corrected code.
-4. Explain why the fix works.
-5. Provide a regression test.
-```
-
-Choose the output based on your goal.
-
----
-
-# Minimal Fix Prompt
-
-For production code, unnecessary changes can create additional risk.
-
-```text
-TASK:
-Fix only the identified bug.
-
 CONSTRAINTS:
-- Preserve existing architecture.
-- Do not rename public functions.
-- Do not change unrelated files.
-- Do not introduce dependencies.
-- Keep the patch as small as practical.
+- Do not change the database schema.
+- Do not add dependencies.
+- Preserve the existing API.
+- Modify only the affected function.
 ```
 
-This encourages focused changes.
+This limits the scope of the fix.
 
 ---
 
-# Regression Testing
+# Ask for Multiple Possible Causes
 
-After fixing a bug, test that it does not return.
+When the evidence is insufficient:
 
 ```text
 TASK:
-After proposing the fix, create a regression test
-that fails with the original implementation and
-passes with the corrected implementation.
+Identify the most likely causes of this problem.
+
+OUTPUT:
+For each possible cause provide:
+1. Probability / confidence
+2. Evidence
+3. How to verify it
+4. Potential fix
 ```
 
-This is an important software engineering practice.
+This is better than pretending there is one certain answer when the available evidence is incomplete.
+
+---
+
+# Hypothesis-Driven Debugging
+
+A useful debugging pattern is:
+
+```text
+Observation
+    ↓
+Hypothesis
+    ↓
+Test
+    ↓
+Result
+    ↓
+Next hypothesis
+```
+
+Example:
+
+```text
+Observation:
+API returns HTTP 500.
+
+Hypothesis:
+Database connection is failing.
+
+Test:
+Check database connectivity.
+
+Result:
+Database connection works.
+
+Next hypothesis:
+Unhandled application exception.
+```
+
+This turns debugging into an investigation rather than random code changes.
+
+---
+
+# Debugging With Logs
+
+Logs can provide valuable evidence.
+
+```text
+LOGS:
+[Relevant application logs]
+```
+
+Ask:
+
+```text
+Analyze these logs and identify
+the most likely failure point.
+```
+
+Only include relevant logs when possible.
+
+---
+
+# Debugging With Test Failures
+
+Test output can make an excellent debugging input.
+
+```text
+TEST:
+test_calculate_total
+
+EXPECTED:
+150
+
+ACTUAL:
+100
+
+FAILURE:
+AssertionError: 100 != 150
+
+CODE:
+[CODE]
+```
+
+Then:
+
+```text
+TASK:
+Identify why the test fails and fix the implementation.
+```
+
+---
+
+# Debugging With Git Changes
+
+When a bug appeared after a code change, a diff can be useful.
+
+```text
+RECENT CHANGE:
+[Git diff]
+
+PROBLEM:
+The application started returning 500 errors
+after this change.
+
+TASK:
+Analyze the diff and identify the most likely cause.
+```
+
+This is especially useful for regression debugging.
+
+---
+
+# Regression Debugging
+
+A regression occurs when previously working functionality stops working after a change.
+
+A useful prompt:
+
+```text
+TASK:
+Investigate this regression.
+
+BEFORE:
+The feature worked correctly.
+
+CHANGE:
+[Recent code change]
+
+AFTER:
+The feature now fails.
+
+REQUIREMENTS:
+- Identify what changed.
+- Determine how the change could cause the failure.
+- Suggest the smallest safe fix.
+- Suggest a regression test.
+```
+
+---
+
+# Ask for a Minimal Fix
+
+If you want to avoid unnecessary rewrites:
+
+```text
+CONSTRAINT:
+Provide the smallest change that fixes
+the root cause while preserving existing behavior.
+```
+
+This is useful for mature codebases.
+
+---
+
+# Ask for a Safer Fix
+
+For important systems:
+
+```text
+REQUIREMENTS:
+- Preserve backward compatibility.
+- Avoid breaking existing API consumers.
+- Add a regression test.
+- Explain potential side effects.
+```
+
+The AI should not be encouraged to make broad changes without justification.
+
+---
+
+# Debugging and Verification
+
+A fix is not complete merely because the code looks correct.
+
+A stronger workflow is:
+
+```text
+Bug
+ ↓
+Diagnosis
+ ↓
+Fix
+ ↓
+Test
+ ↓
+Regression Test
+ ↓
+Verification
+```
+
+Ask the AI to explain how the fix should be verified.
 
 ---
 
@@ -750,50 +792,75 @@ This is an important software engineering practice.
 ## Weak
 
 ```text
-My website login is broken. Fix it.
+My login isn't working. Fix it.
 ```
 
-## Strong
+## Stronger
 
 ```text
-ROLE:
-Act as a senior full-stack debugging engineer.
-
-STACK:
-React + TypeScript + FastAPI
-
-EXPECTED:
-Users can log in with valid credentials and
-reach the dashboard.
-
-ACTUAL:
-The login request returns HTTP 200, but the
-frontend redirects back to the login page.
-
-BROWSER CONSOLE:
-[ERROR]
-
-NETWORK RESPONSE:
-[RESPONSE]
-
-FRONTEND CODE:
-[CODE]
-
-BACKEND CODE:
-[CODE]
+PROJECT:
+FastAPI application
 
 TASK:
-1. Trace the authentication flow.
-2. Identify the most likely root cause.
-3. Explain the evidence.
-4. Provide the minimal fix.
-5. Create a regression test.
+Debug the login endpoint.
 
-CONSTRAINT:
-Do not modify unrelated functionality.
+EXPECTED:
+Valid credentials should return HTTP 200
+and an authentication token.
+
+ACTUAL:
+Valid credentials return HTTP 401.
+
+RECENT CHANGE:
+Authentication middleware was updated yesterday.
+
+CODE:
+[Relevant code]
+
+LOGS:
+[Relevant logs]
+
+REQUIREMENTS:
+1. Identify the likely root cause.
+2. Explain the evidence.
+3. Provide the smallest safe fix.
+4. Create a regression test.
+5. Explain how to verify the fix.
 ```
 
-The second prompt provides enough information for systematic investigation.
+The second prompt provides a real debugging investigation framework.
+
+---
+
+# Common Debugging Prompt Mistakes
+
+## 1. "Fix It" Without Context
+
+The AI cannot reliably diagnose an unknown problem.
+
+## 2. Missing Expected Behavior
+
+Without knowing what should happen, the AI cannot clearly define success.
+
+## 3. Missing Error Messages
+
+Exact errors are valuable evidence.
+
+## 4. Providing Too Much Irrelevant Code
+
+Large amounts of unrelated code can obscure the actual issue.
+
+## 5. Asking for a Rewrite Instead of a Diagnosis
+
+A complete rewrite may hide the original problem.
+
+## 6. No Reproduction Steps
+
+The AI may not understand how the failure occurs.
+
+## 7. No Verification
+
+A proposed fix should be tested.
 
 ---
 
@@ -801,117 +868,55 @@ The second prompt provides enough information for systematic investigation.
 
 ```text
 # ROLE
-Act as a senior software debugging engineer.
+Act as a senior [LANGUAGE / DOMAIN] developer.
 
 # ENVIRONMENT
-[Language / framework / runtime / OS]
+Language:
+Framework:
+Runtime:
+Database:
+OS:
+
+# TASK
+Debug the following problem.
 
 # EXPECTED BEHAVIOR
 [What should happen]
 
 # ACTUAL BEHAVIOR
-[What happens instead]
+[What actually happens]
 
 # ERROR
 [Exact error message]
+
+# TRACEBACK / LOGS
+[Relevant evidence]
 
 # REPRODUCTION STEPS
 1. [Step 1]
 2. [Step 2]
 3. [Step 3]
 
-# LOGS
-[Relevant logs]
+# RECENT CHANGES
+[Recent changes, if relevant]
 
 # CODE
 """
 [Relevant code]
 """
 
-# TASK
-1. Identify the root cause.
-2. Explain the evidence.
-3. Provide the smallest reliable fix.
-4. Provide a regression test.
-
 # CONSTRAINTS
-- [Constraint]
+- [Constraint 1]
+- [Constraint 2]
 
 # OUTPUT
-[Desired response format]
+1. Root cause
+2. Evidence
+3. Fix
+4. Corrected code
+5. Tests
+6. Verification steps
 ```
-
----
-
-# Common Debugging Prompt Mistakes
-
-## 1. Saying Only "Fix It"
-
-The AI does not know what "it" means.
-
-## 2. Omitting Expected Behavior
-
-Without a target, the AI may not know what success looks like.
-
-## 3. Hiding the Exact Error
-
-Use the original error message whenever possible.
-
-## 4. Providing Too Much Irrelevant Code
-
-More information is not always better.
-
-## 5. Asking for a Complete Rewrite
-
-A rewrite may introduce new bugs when a small fix is sufficient.
-
-## 6. No Reproduction Steps
-
-Without reproduction, diagnosis becomes harder.
-
-## 7. No Verification
-
-A proposed fix should be tested.
-
-## 8. Treating the First Hypothesis as Fact
-
-A plausible explanation is not necessarily the root cause.
-
----
-
-# Best Practices
-
-### 1. Describe Expected vs. Actual
-
-This is one of the most useful debugging patterns.
-
-### 2. Provide Exact Evidence
-
-Include errors, logs, stack traces, and measurements.
-
-### 3. Ask for Root Cause
-
-Do not stop at a workaround.
-
-### 4. Limit the Scope
-
-Request minimal changes when appropriate.
-
-### 5. Ask for Tests
-
-A fix without verification is incomplete.
-
-### 6. Separate Facts From Hypotheses
-
-This reduces overconfident diagnosis.
-
-### 7. Reproduce Before Fixing
-
-A reproducible problem is easier to investigate.
-
-### 8. Verify After Fixing
-
-Confirm that the original problem is resolved and that existing behavior remains intact.
 
 ---
 
@@ -919,29 +924,38 @@ Confirm that the original problem is resolved and that existing behavior remains
 
 Before sending a debugging prompt:
 
-* [ ] Is the expected behavior clear?
-* [ ] Is the actual behavior clear?
-* [ ] Is the exact error included?
-* [ ] Are relevant logs included?
-* [ ] Are reproduction steps provided?
-* [ ] Is the environment specified?
-* [ ] Is the relevant code included?
-* [ ] Are constraints defined?
-* [ ] Is root-cause analysis requested?
-* [ ] Is verification requested?
-* [ ] Is a regression test requested when appropriate?
+* [ ] Did I describe the expected behavior?
+* [ ] Did I describe the actual behavior?
+* [ ] Did I include the exact error?
+* [ ] Did I include relevant logs or traceback?
+* [ ] Did I provide reproduction steps?
+* [ ] Did I include the relevant code?
+* [ ] Did I specify the environment?
+* [ ] Did I mention recent changes?
+* [ ] Did I define constraints?
+* [ ] Did I ask for the root cause?
+* [ ] Did I request tests?
+* [ ] Did I define how the fix should be verified?
 
 ---
 
 # Key Takeaways
 
-1. Debugging prompts should provide evidence, not just symptoms.
-2. Expected and actual behavior should be clearly separated.
-3. Exact errors and logs are more useful than vague descriptions.
-4. Relevant code and reproduction steps improve diagnosis.
-5. Ask for the root cause rather than only a workaround.
-6. Use constraints when you need a minimal or focused fix.
-7. Separate confirmed facts from hypotheses.
-8. Complex debugging can be divided into multiple stages.
-9. Always verify important fixes.
-10. A strong debugging prompt turns **“something is broken”** into a structured investigation.
+1. Debugging prompts should provide evidence, not just instructions.
+2. Expected behavior and actual behavior are both important.
+3. Exact errors and stack traces can significantly improve diagnosis.
+4. A minimal reproducible example keeps debugging focused.
+5. Ask for the root cause instead of only requesting a patch.
+6. Use constraints when you need to limit changes.
+7. Consider multiple hypotheses when the evidence is incomplete.
+8. Validate fixes with tests and reproduction steps.
+9. Regression tests help prevent the same bug from returning.
+10. Effective debugging prompts turn AI from a simple code generator into a **structured debugging assistant**.
+
+---
+
+## Next
+
+**`03-patterns/03-refactoring.md`**
+
+This file will cover prompts for **refactoring, code cleanup, maintainability, performance improvements, and safe modernization**.
