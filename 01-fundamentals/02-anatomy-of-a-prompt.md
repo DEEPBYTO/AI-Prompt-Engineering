@@ -626,6 +626,6 @@ You do not need every item. Choose the components that matter for the task.
 
 Continue with:
 
-**[Instructions](./instructions.md)**
+**[Instructions](./03-instructions.md)**
 
 Learn how to write clear, precise, and actionable instructions for AI systems.
